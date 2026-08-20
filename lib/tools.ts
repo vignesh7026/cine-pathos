@@ -36,6 +36,10 @@ export const TOOL_DEFINITIONS = [
           type: "number",
           description: "Minimum TMDB vote average, 0-10. Optional.",
         },
+        language: {
+          type: "string",
+          description: "Target language/regional film language (e.g. 'tamil', 'hindi', 'malayalam', 'telugu'). Optional.",
+        },
       },
     },
   },
@@ -102,6 +106,7 @@ export async function executeTool(
         genres: a.genres,
         keywords: a.keywords,
         minRating: a.min_rating,
+        language: a.language,
       });
       return { toolName: name, output: { movies } };
     }

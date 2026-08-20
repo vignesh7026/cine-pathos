@@ -1,4 +1,4 @@
-﻿import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { getProfilesForUser } from "@/lib/profileStore";
@@ -15,7 +15,7 @@ export default async function ProfilesPage() {
   const profiles = await getProfilesForUser(userId!);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-6 py-16">
+    <main style={{ margin: 0, padding: 0 }}>
       <ProfilePicker initialProfiles={profiles} />
     </main>
   );

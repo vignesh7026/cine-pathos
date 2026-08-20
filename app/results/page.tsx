@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import ClarifyingQuestion from "@/components/ClarifyingQuestion";
 import MovieGrid from "@/components/MovieGrid";
 import AuthHeader from "@/components/AuthHeader";
+import ResultsLoadingState from "@/components/ResultsLoadingState";
 import type { ConversationTurn, Movie, RecommendResponse } from "@/types/movie";
 
 function ResultsContent() {
@@ -20,10 +21,28 @@ function ResultsContent() {
     agentNote: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Prevents the initial mood from firing twice — React Strict Mode runs
-  // effects twice in dev, and this also guards a back-navigation remount.
+  const [mounted, setMounted] = useState(false);
   const hasFiredInitial = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const saveToCache = (resVal: typeof results, histVal: ConversationTurn[], qVal: string | null) => {
+    if (typeof window === "undefined" || !initialMood) return;
+    try {
+      sessionStorage.setItem(
+        `mood_results_${initialMood}`,
+        JSON.stringify({
+          results: resVal,
+          history: histVal,
+          pendingQuestion: qVal,
+        })
+      );
+    } catch (e) {
+      console.error("Failed to write to sessionStorage", e);
+    }
+  };
 
   async function sendMessage(message: string, historyOverride?: ConversationTurn[]) {
     setIsLoading(true);
@@ -54,17 +73,22 @@ function ResultsContent() {
       if (data.type === "clarifying_question") {
         setPendingQuestion(data.question);
         setResults(null);
-        setHistory([
+        const newHist: ConversationTurn[] = [
           ...nextHistory,
           { role: "assistant", content: data.question },
-        ]);
+        ];
+        setHistory(newHist);
+        saveToCache(null, newHist, data.question);
       } else {
         setPendingQuestion(null);
-        setResults({ movies: data.movies, agentNote: data.agentNote });
-        setHistory([
+        const newRes = { movies: data.movies, agentNote: data.agentNote };
+        setResults(newRes);
+        const newHist: ConversationTurn[] = [
           ...nextHistory,
           { role: "assistant", content: data.agentNote },
-        ]);
+        ];
+        setHistory(newHist);
+        saveToCache(newRes, newHist, null);
       }
     } catch (err) {
       console.error(err);
@@ -75,76 +99,122 @@ function ResultsContent() {
   }
 
   useEffect(() => {
-    if (!initialMood || hasFiredInitial.current) return;
+    if (!mounted || !initialMood || hasFiredInitial.current) return;
     hasFiredInitial.current = true;
+
+    try {
+      const cached = sessionStorage.getItem(`mood_results_${initialMood}`);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        setResults(parsed.results);
+        setHistory(parsed.history);
+        setPendingQuestion(parsed.pendingQuestion);
+        return;
+      }
+    } catch (e) {
+      console.error("Failed to read from sessionStorage cache", e);
+    }
+
     sendMessage(initialMood, []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialMood]);
+  }, [mounted, initialMood]);
+
+  if (!mounted) {
+    return (
+      <main className="min-h-screen bg-[#050510]">
+        <AuthHeader />
+        <div className="flex min-h-screen items-center justify-center px-4">
+          <p className="text-sm text-offwhite/60">Loading…</p>
+        </div>
+      </main>
+    );
+  }
 
   if (!initialMood) {
     return (
-      <main className="min-h-screen">
+      <main className="min-h-screen bg-[#050510]">
         <AuthHeader />
-        <p className="mx-auto max-w-xl px-6 py-24 text-center text-sm text-muted">
-          No mood provided.{" "}
-          <button
-            onClick={() => router.push("/")}
-            className="text-marquee underline underline-offset-2"
-          >
-            Go back and describe how you&apos;re feeling.
-          </button>
-        </p>
+        <div className="flex min-h-screen items-center justify-center px-4">
+          <div className="max-w-xl text-center">
+            <p className="text-sm text-offwhite/80">
+              No mood provided.{" "}
+              <button
+                onClick={() => router.push("/")}
+                className="text-marquee underline underline-offset-2 hover:text-marquee-light"
+              >
+                Go back and describe how you&apos;re feeling.
+              </button>
+            </p>
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-[#050510] pt-14">
       <AuthHeader />
 
-      <div className="mx-auto max-w-2xl px-6 pt-10 text-center">
-        <button
-          onClick={() => router.push("/")}
-          className="font-mono text-xs text-muted transition hover:text-foam"
-        >
-          ← try a different mood
-        </button>
+      <div className="relative z-10 w-full px-0 py-0">
+        <div className="mt-4 flex items-center px-10">
+          <button
+            onClick={() => router.push("/")}
+            className="font-mono text-xs text-offwhite/60 transition hover:text-offwhite"
+          >
+            ← try a different mood
+          </button>
+        </div>
+
+        <div className="sprocket-divider my-4 mx-10" />
+
+        {isLoading && !pendingQuestion && !results && (
+          <ResultsLoadingState />
+        )}
+
+        {pendingQuestion && (
+          <ClarifyingQuestion
+            question={pendingQuestion}
+            onAnswer={(answer) => sendMessage(answer)}
+            isLoading={isLoading}
+          />
+        )}
+
+        {results && (
+          <MovieGrid movies={results.movies} agentNote={results.agentNote} />
+        )}
+
+        {error && (
+          <p className="mx-auto max-w-xl pb-4 text-center text-sm text-rose-400">
+            {error}
+          </p>
+        )}
       </div>
 
-      <div className="sprocket-divider" />
-
-      {isLoading && !pendingQuestion && !results && (
-        <p className="mx-auto max-w-xl px-6 py-16 text-center text-sm text-muted">
-          reading the room…
-        </p>
-      )}
-
-      {pendingQuestion && (
-        <ClarifyingQuestion
-          question={pendingQuestion}
-          onAnswer={(answer) => sendMessage(answer)}
-          isLoading={isLoading}
-        />
-      )}
-
-      {results && (
-        <MovieGrid movies={results.movies} agentNote={results.agentNote} />
-      )}
-
-      {error && (
-        <p className="mx-auto max-w-xl px-6 pb-12 text-center text-sm text-marquee2">
-          {error}
-        </p>
-      )}
+      <style>{`
+        .text-offwhite {
+          color: #f5f0f0;
+        }
+        .text-offwhite\\/60 {
+          color: rgba(245, 240, 240, 0.6);
+        }
+        .text-offwhite\\/80 {
+          color: rgba(245, 240, 240, 0.8);
+        }
+        .text-marquee {
+          color: #818cf8;
+        }
+        .text-marquee-light {
+          color: #a5b4fc;
+        }
+      `}</style>
     </main>
   );
 }
 
-// useSearchParams requires a Suspense boundary in the app router.
 export default function ResultsPage() {
   return (
     <Suspense fallback={null}>
       <ResultsContent />
     </Suspense>
   );
-} 
+}

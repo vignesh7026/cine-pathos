@@ -106,3 +106,18 @@ body {
 .poster-tilt:hover .poster-glare {
   opacity: 1;
 }
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-cardIn {
+  animation: cardIn 0.45s ease-out forwards;
+}

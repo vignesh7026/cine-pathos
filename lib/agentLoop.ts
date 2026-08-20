@@ -1,4 +1,4 @@
-import type { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
+import type { ChatCompletion, ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
 import { getGroqClient, groqTools, SYSTEM_INSTRUCTION, GROQ_MODEL } from "@/lib/groq";
 import { executeTool } from "@/lib/tools";
 import type {
@@ -8,7 +8,19 @@ import type {
   ToolName,
 } from "@/types/movie";
 
+import { searchMovies } from "@/lib/tmdb";
+
 const MAX_TOOL_ROUNDS = 4;
+
+async function fallbackSearch(message: string): Promise<Movie[]> {
+  try {
+    const words = message.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+    return await searchMovies({ keywords: words });
+  } catch (err) {
+    console.error("[agentLoop] fallbackSearch failed", err);
+    return [];
+  }
+}
 
 /**
  * Groq occasionally has the model emit a malformed pseudo-function-call as
@@ -30,14 +42,15 @@ async function createCompletionWithRetry(
   client: ReturnType<typeof getGroqClient>,
   messages: ChatCompletionMessageParam[],
   attempt = 0
-): ReturnType<typeof client.chat.completions.create> {
+): Promise<ChatCompletion> {
   try {
-    return await client.chat.completions.create({
+    return (await client.chat.completions.create({
       model: GROQ_MODEL,
       messages,
       tools: groqTools,
       tool_choice: "auto",
-    });
+      stream: false,
+    })) as ChatCompletion;
   } catch (err) {
     const status =
       err && typeof err === "object" && "status" in err
@@ -57,20 +70,8 @@ async function createCompletionWithRetry(
     }
 
     if (status === 429 && attempt < 1) {
-      const headers =
-        err && typeof err === "object" && "headers" in err
-          ? (err as { headers?: Headers }).headers
-          : undefined;
-      const retryAfterSeconds = Number(headers?.get?.("retry-after") ?? "5");
-      const waitMs = Math.min(
-        Math.max(retryAfterSeconds, 1) * 1000,
-        20000 // never wait more than 20s — fail fast beyond that
-      );
-      console.warn(
-        `[agentLoop] rate limited by Groq, waiting ${waitMs}ms and retrying once…`
-      );
-      await new Promise((resolve) => setTimeout(resolve, waitMs));
-      return createCompletionWithRetry(client, messages, attempt + 1);
+      console.warn("[agentLoop] rate limited by Groq, fast-failing to fallback search");
+      throw err;
     }
 
     throw err;
@@ -93,75 +94,90 @@ export async function runAgentLoop(
   message: string,
   history: ConversationTurn[] = []
 ): Promise<RecommendResponse> {
-  const client = getGroqClient();
-
-  const messages: ChatCompletionMessageParam[] = [
-    { role: "system", content: SYSTEM_INSTRUCTION },
-    ...history.map(
-      (turn): ChatCompletionMessageParam => ({
-        role: turn.role === "user" ? "user" : "assistant",
-        content: turn.content,
-      })
-    ),
-    { role: "user", content: message },
-  ];
-
   let lastMovies: Movie[] = [];
 
-  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    const completion = await createCompletionWithRetry(client, messages);
+  try {
+    const client = getGroqClient();
 
-    const assistantMessage = completion.choices[0].message;
-    const toolCalls = assistantMessage.tool_calls;
+    const messages: ChatCompletionMessageParam[] = [
+      { role: "system", content: SYSTEM_INSTRUCTION },
+      ...history.map(
+        (turn): ChatCompletionMessageParam => ({
+          role: turn.role === "user" ? "user" : "assistant",
+          content: turn.content,
+        })
+      ),
+      { role: "user", content: message },
+    ];
 
-    if (!toolCalls || toolCalls.length === 0) {
-      // Model produced a plain text final answer with no further tool use.
-      const text = assistantMessage.content ?? "";
-      return {
-        type: "results",
-        movies: lastMovies,
-        agentNote: text || "Here's what I found for that mood.",
-      };
-    }
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      const completion = await createCompletionWithRetry(client, messages);
 
-    // Record the assistant's tool-call turn before appending tool results,
-    // matching the OpenAI-style message sequence Groq expects.
-    messages.push(assistantMessage as ChatCompletionMessageParam);
+      const assistantMessage = completion.choices[0].message;
+      const toolCalls = assistantMessage.tool_calls;
 
-    for (const call of toolCalls) {
-      const toolName = call.function.name as ToolName;
-      const args = JSON.parse(call.function.arguments || "{}") as Record<
-        string,
-        unknown
-      >;
-
-      if (toolName === "ask_clarifying_question") {
-        const question =
-          (args as { question?: string })?.question ??
-          "Can you tell me a bit more about what you're in the mood for?";
-        return { type: "clarifying_question", question };
-      }
-
-      let toolResult: unknown;
-      try {
-        const result = await executeTool(toolName, args);
-        toolResult = result.output;
-
-        if (toolName === "search_movies") {
-          lastMovies = (result.output as { movies: Movie[] }).movies;
+      if (!toolCalls || toolCalls.length === 0) {
+        // Model produced a plain text final answer with no further tool use.
+        const text = assistantMessage.content ?? "";
+        if (lastMovies.length === 0) {
+          lastMovies = await fallbackSearch(message);
         }
-      } catch (err) {
-        toolResult = {
-          error: err instanceof Error ? err.message : "Tool execution failed",
+        const note =
+          lastMovies.length > 0 && text.toLowerCase().includes("wasn't able to find")
+            ? "Here are recommendations matched to your mood:"
+            : text || "Here's what I found for that mood.";
+        return {
+          type: "results",
+          movies: lastMovies,
+          agentNote: note,
         };
       }
 
-      messages.push({
-        role: "tool",
-        tool_call_id: call.id,
-        content: JSON.stringify(toolResult),
-      });
+      // Record the assistant's tool-call turn before appending tool results,
+      // matching the OpenAI-style message sequence Groq expects.
+      messages.push(assistantMessage as ChatCompletionMessageParam);
+
+      for (const call of toolCalls) {
+        const toolName = call.function.name as ToolName;
+        const args = JSON.parse(call.function.arguments || "{}") as Record<
+          string,
+          unknown
+        >;
+
+        if (toolName === "ask_clarifying_question") {
+          const question =
+            (args as { question?: string })?.question ??
+            "Can you tell me a bit more about what you're in the mood for?";
+          return { type: "clarifying_question", question };
+        }
+
+        let toolResult: unknown;
+        try {
+          const result = await executeTool(toolName, args);
+          toolResult = result.output;
+
+          if (toolName === "search_movies") {
+            lastMovies = (result.output as { movies: Movie[] }).movies;
+          }
+        } catch (err) {
+          toolResult = {
+            error: err instanceof Error ? err.message : "Tool execution failed",
+          };
+        }
+
+        messages.push({
+          role: "tool",
+          tool_call_id: call.id,
+          content: JSON.stringify(toolResult),
+        });
+      }
     }
+  } catch (err) {
+    console.error("[agentLoop] Error running agent loop, invoking fallback:", err);
+  }
+
+  if (lastMovies.length === 0) {
+    lastMovies = await fallbackSearch(message);
   }
 
   // Safety net: if the model is still calling tools after MAX_TOOL_ROUNDS,
@@ -171,7 +187,7 @@ export async function runAgentLoop(
     movies: lastMovies,
     agentNote:
       lastMovies.length > 0
-        ? "Here's what I found so far for that mood."
+        ? "Here are recommendations matched to your mood."
         : "I wasn't able to find a good match — try describing your mood a little differently.",
   };
 }

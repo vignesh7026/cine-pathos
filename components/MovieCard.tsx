@@ -1,134 +1,109 @@
 "use client";
 
+import Link from "next/link";
+import type { Movie } from "@/types/movie";
 import { useState } from "react";
-import Image from "next/image";
-import type { Movie, StreamingAvailability, Trailer } from "@/types/movie";
 
-const POSTER_BASE = "https://image.tmdb.org/t/p/w342";
+interface MovieCardProps {
+  movie: Movie;
+}
 
-export default function MovieCard({ movie }: { movie: Movie }) {
-  const [trailer, setTrailer] = useState<Trailer | null | "loading">(null);
-  const [providers, setProviders] = useState<
-    StreamingAvailability | "loading" | null
-  >(null);
+export default function MovieCard({ movie }: MovieCardProps) {
+  const match = Math.floor(70 + Math.random() * 25);
+  const runtime = movie.runtime ?? 120;
+  const [imgError, setImgError] = useState(false);
 
-  async function loadTrailer() {
-    if (trailer) return; // already loaded or loading
-    setTrailer("loading");
-    try {
-      const res = await fetch(`/api/movie/${movie.id}/trailer`);
-      const data = await res.json();
-      setTrailer(data.trailer ?? null);
-    } catch {
-      setTrailer(null);
+  const posterPath = movie.posterPath;
+  const imageUrl = posterPath
+    ? `https://image.tmdb.org/t/p/w342${posterPath}`
+    : null;
+
+  const httpImageUrl = posterPath
+    ? `http://image.tmdb.org/t/p/w342${posterPath}`
+    : null;
+
+  const proxyUrl = posterPath
+    ? `https://images.weserv.nl/?url=image.tmdb.org/t/p/w342${posterPath}`
+    : null;
+
+  const [useHttp, setUseHttp] = useState(false);
+  const [useProxy, setUseProxy] = useState(false);
+
+  let currentSrc = imageUrl;
+  if (useProxy && proxyUrl) currentSrc = proxyUrl;
+  else if (useHttp && httpImageUrl) currentSrc = httpImageUrl;
+
+  const handleImageError = () => {
+    if (!useHttp && httpImageUrl) {
+      setUseHttp(true);
+    } else if (!useProxy && proxyUrl) {
+      setUseProxy(true);
+    } else {
+      setImgError(true);
     }
-  }
+  };
 
-  async function loadProviders() {
-    if (providers) return;
-    setProviders("loading");
-    try {
-      const res = await fetch(`/api/movie/${movie.id}/providers`);
-      const data = await res.json();
-      setProviders(data);
-    } catch {
-      setProviders(null);
-    }
-  }
-
-  const year = movie.releaseDate ? movie.releaseDate.slice(0, 4) : "—";
+  const showImage = currentSrc && !imgError;
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-raised2 bg-raised/60 transition hover:border-marquee/40">
-      <div className="relative aspect-[2/3] w-full bg-raised2">
-        {movie.posterPath ? (
-          <Image
-            src={`${POSTER_BASE}${movie.posterPath}`}
-            alt={`${movie.title} poster`}
-            fill
-            sizes="(max-width: 640px) 50vw, 220px"
-            className="object-cover"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center px-4 text-center font-mono text-xs text-muted">
-            no poster available
-          </div>
-        )}
-        <span className="absolute right-2 top-2 rounded-full bg-void/80 px-2 py-0.5 font-mono text-[11px] text-marquee">
-          {movie.voteAverage.toFixed(1)}
-        </span>
-      </div>
-
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <div>
-          <h3 className="font-display text-base leading-snug text-foam">
-            {movie.title}
-          </h3>
-          <p className="font-mono text-xs text-muted">{year}</p>
-        </div>
-
-        <p className="line-clamp-3 text-xs text-muted">{movie.overview}</p>
-
-        <div className="mt-auto flex flex-col gap-2 pt-2">
-          {trailer === null && (
-            <button
-              onClick={loadTrailer}
-              className="rounded-lg border border-raised2 px-3 py-1.5 text-xs text-foam transition hover:border-marquee/50"
-            >
-              Watch trailer
-            </button>
-          )}
-          {trailer === "loading" && (
-            <p className="font-mono text-xs text-muted">loading trailer…</p>
-          )}
-          {trailer && trailer !== "loading" && (
-            <a
-              href={`https://www.youtube.com/watch?v=${trailer.key}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-lg bg-marquee px-3 py-1.5 text-center text-xs font-semibold text-void transition hover:bg-marquee2"
-            >
-              Play trailer ↗
-            </a>
-          )}
-
-          {providers === null && (
-            <button
-              onClick={loadProviders}
-              className="rounded-lg border border-raised2 px-3 py-1.5 text-xs text-foam transition hover:border-plum/60"
-            >
-              Where to watch
-            </button>
-          )}
-          {providers === "loading" && (
-            <p className="font-mono text-xs text-muted">checking…</p>
-          )}
-          {providers && providers !== "loading" && (
-            <div className="text-xs text-muted">
-              {providers.flatrate.length > 0 ? (
-                <p>
-                  Streaming:{" "}
-                  <span className="text-foam">
-                    {providers.flatrate.map((p) => p.providerName).join(", ")}
-                  </span>
-                </p>
-              ) : providers.rent.length > 0 || providers.buy.length > 0 ? (
-                <p>
-                  Rent/buy:{" "}
-                  <span className="text-foam">
-                    {[...providers.rent, ...providers.buy]
-                      .map((p) => p.providerName)
-                      .slice(0, 3)
-                      .join(", ")}
-                  </span>
-                </p>
-              ) : (
-                <p>Not available to stream in this region.</p>
-              )}
+    <Link href={`/movie/${movie.id}`} className="group block">
+      <div className="relative overflow-hidden rounded-xl bg-[#1a1a2e] transition-all duration-300 hover:scale-105 hover:shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
+        <div className="relative aspect-[2/3] w-full overflow-hidden bg-gradient-to-b from-[#2a2a4a] to-[#0d0d1a]">
+          {showImage ? (
+            <img
+              src={currentSrc!}
+              alt={movie.title}
+              className="object-cover transition-transform duration-300 group-hover:scale-105 w-full h-full"
+              loading="lazy"
+              onError={handleImageError}
+            />
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center p-4 text-center">
+              <span className="text-sm font-semibold text-white/80 line-clamp-3">
+                {movie.title}
+              </span>
+              <span className="mt-1 text-xs text-white/40">
+                {movie.releaseDate?.slice(0, 4) || 'TBA'}
+              </span>
             </div>
           )}
+
+          {movie.voteAverage && movie.voteAverage > 7 && (
+            <div className="absolute left-2 top-2 rounded bg-[#e50914] px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-lg">
+              TOP 10
+            </div>
+          )}
+
+          <div className="absolute bottom-2 left-2 flex items-center gap-2 rounded bg-black/70 px-2 py-1 text-xs font-medium backdrop-blur-sm">
+            <span className="text-[#46d369]">{match}% match</span>
+            <span className="h-1 w-1 rounded-full bg-white/30" />
+            <span>
+              {runtime >= 60
+                ? `${Math.floor(runtime / 60)}h${runtime % 60}m`
+                : `${runtime}m`}
+            </span>
+            <span className="rounded border border-white/20 px-1 text-[10px] uppercase">
+              HD
+            </span>
+          </div>
+        </div>
+
+        <div className="p-3">
+          <h3 className="line-clamp-1 text-sm font-semibold text-white/90 group-hover:text-white">
+            {movie.title}
+          </h3>
+          <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-white/50">
+            {movie.genres?.slice(0, 3).map((genre) => (
+              <span key={genre} className="rounded bg-white/5 px-2 py-0.5">
+                {genre}
+              </span>
+            ))}
+            {movie.genres && movie.genres.length > 3 && (
+              <span className="text-white/30">+{movie.genres.length - 3}</span>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

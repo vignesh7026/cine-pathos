@@ -49,12 +49,13 @@ export default function PosterCard({ movie }: PosterCardProps) {
     }
     setTrailerLoading(true);
     try {
-      const res = await fetch(`/api/movies/${movie.id}/trailer`);
-      const data: Trailer = await res.json();
-      setTrailer(data);
-      if (data?.key) {
+      const res = await fetch(`/api/movie/${movie.id}/trailer`);
+      const data = await res.json();
+      const t = data?.trailer;
+      setTrailer(t);
+      if (t?.key) {
         window.open(
-          `https://www.youtube.com/watch?v=${data.key}`,
+          `https://www.youtube.com/watch?v=${t.key}`,
           "_blank",
           "noopener,noreferrer"
         );
@@ -73,7 +74,7 @@ export default function PosterCard({ movie }: PosterCardProps) {
     }
     setAvailabilityLoading(true);
     try {
-      const res = await fetch(`/api/movies/${movie.id}/availability`);
+      const res = await fetch(`/api/movie/${movie.id}/providers`);
       const data: StreamingAvailability = await res.json();
       setAvailability(data);
       setShowAvailability(true);

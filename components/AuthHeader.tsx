@@ -5,7 +5,11 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import type { Profile } from "@/types/profile";
 
-export default function AuthHeader() {
+interface AuthHeaderProps {
+  hideBrand?: boolean; // new prop
+}
+
+export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
   const { data: session, status } = useSession();
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -19,8 +23,6 @@ export default function AuthHeader() {
       .catch(() => setActiveProfile(null));
   }, [status]);
 
-  // Close on outside click — standard dropdown behavior, needed now that
-  // this is a real menu rather than always-visible pills.
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -43,12 +45,16 @@ export default function AuthHeader() {
 
   return (
     <header className="glass-chrome sticky top-0 z-50 flex h-14 items-center justify-between px-6">
-      <Link
-        href="/"
-        className="font-display text-lg font-normal tracking-[0.08em] text-foam/90"
-      >
-        MARQUEE
-      </Link>
+      {!hideBrand && (
+        <Link
+          href="/"
+          className="font-display text-lg font-normal tracking-[0.08em] text-foam/90"
+        >
+          MARQUEE
+        </Link>
+      )}
+      {/* If hideBrand is true, we render nothing on the left so the header stays balanced */}
+      {hideBrand && <div />}
 
       <div className="flex items-center gap-3 font-mono text-xs">
         {status === "loading" ? null : session?.user ? (

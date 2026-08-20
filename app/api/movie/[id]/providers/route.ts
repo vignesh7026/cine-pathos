@@ -3,9 +3,10 @@ import { getStreamingAvailability } from "@/lib/tmdb";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
-  const movieId = Number(params.id);
+  const resolvedParams = await params;
+  const movieId = Number(resolvedParams.id);
   if (!Number.isFinite(movieId)) {
     return NextResponse.json({ error: "Invalid movie id." }, { status: 400 });
   }
@@ -16,7 +17,7 @@ export async function GET(
     const availability = await getStreamingAvailability(movieId, region);
     return NextResponse.json(availability);
   } catch (err) {
-    console.error(`[/api/movie/${params.id}/providers]`, err);
+    console.error(`[/api/movie/${resolvedParams.id}/providers]`, err);
     return NextResponse.json(
       { error: "Couldn't fetch streaming availability for this movie." },
       { status: 500 }

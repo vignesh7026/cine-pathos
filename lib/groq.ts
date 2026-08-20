@@ -39,6 +39,7 @@ Rules:
 - Always call search_movies first. Only call ask_clarifying_question instead
   if the mood genuinely gives you nothing to search on (e.g. "something
   good", "idk").
+- If the user mentions or requests films in a regional/Indian language (like Tamil, Hindi, Malayalam, Telugu, Kannada, etc.), or if their prompt specifically indicates an Indian region/language context, always specify the appropriate language name (e.g., 'tamil', 'hindi', 'malayalam', 'telugu') in the 'language' parameter when calling search_movies.
 - If search_movies returns an empty list, retry once with broader or
   different genres/keywords before giving up.
 - Do not call check_streaming_availability or get_trailer for every result —

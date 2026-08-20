@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
-import { Fraunces, Work_Sans, JetBrains_Mono } from "next/font/google";
+import { Fraunces, Work_Sans, JetBrains_Mono, Noto_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
+import { cn } from "@/lib/utils";
+
+const playfairDisplayHeading = Playfair_Display({subsets:['latin'],variable:'--font-heading'});
+
+const notoSans = Noto_Sans({subsets:['latin'],variable:'--font-sans'});
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -34,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans", notoSans.variable, playfairDisplayHeading.variable)}>
       <body
         className={`${fraunces.variable} ${workSans.variable} ${jetbrainsMono.variable} font-body bg-void text-foam`}
       >
