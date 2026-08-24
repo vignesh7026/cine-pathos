@@ -2,6 +2,16 @@ import Groq from "groq-sdk";
 import type { ChatCompletionTool } from "groq-sdk/resources/chat/completions";
 import { TOOL_DEFINITIONS } from "@/lib/tools";
 
+if (typeof process !== "undefined" && process.platform === "win32") {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const dns = require("node:dns");
+    dns.setDefaultResultOrder("ipv4first");
+  } catch {
+    // Skip if not available in runtime
+  }
+}
+
 export function getGroqClient(): Groq {
   const key = process.env.GROQ_API_KEY;
   if (!key) {

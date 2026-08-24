@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
@@ -48,7 +48,8 @@ export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
       {!hideBrand && (
         <Link
           href="/"
-          className="font-display text-lg font-normal tracking-[0.08em] text-foam/90"
+          className="font-display text-lg font-normal tracking-[0.08em]"
+          style={{ color: "#818cf8", letterSpacing: "0.2em", fontFamily: "Georgia, serif", fontSize: "1.1rem", textShadow: "0 0 20px rgba(99,102,241,0.4)" }}
         >
           MARQUEE
         </Link>
@@ -61,14 +62,15 @@ export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
           <div ref={menuRef} className="relative">
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-raised2 bg-raised text-foam transition hover:border-marquee/40"
+              className="flex h-8 w-8 items-center justify-center rounded-full border transition"
+              style={{ background: "rgba(99,102,241,0.15)", borderColor: "rgba(99,102,241,0.35)", color: "#c7d2fe", fontWeight: 600 }}
               aria-label="Account menu"
             >
               {initial}
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 top-10 w-56 rounded-xl border border-raised2 bg-raised/95 p-3 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md">
+              <div className="absolute right-0 top-10 w-56 rounded-xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md" style={{ background: "rgba(8,13,34,0.95)", border: "1px solid rgba(99,102,241,0.2)" }}>
                 <p className="px-1 pb-2 text-muted">
                   hi, <span className="text-foam">{session.user.name}</span>
                   {showProfileClause && (
@@ -84,7 +86,10 @@ export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
                   {activeProfile && (
                     <Link
                       href="/profiles"
-                      className="rounded-md px-2 py-2 text-left text-muted transition hover:bg-raised2 hover:text-foam"
+                      className="rounded-md px-2 py-2 text-left text-sm transition"
+                      style={{ color: "rgba(180,190,240,0.6)" }}
+                      onMouseOver={e => (e.currentTarget.style.color = "#eef2ff")}
+                      onMouseOut={e => (e.currentTarget.style.color = "rgba(180,190,240,0.6)")}
                       onClick={() => setMenuOpen(false)}
                     >
                       switch profile
@@ -92,7 +97,10 @@ export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
                   )}
                   <button
                     onClick={() => signOut({ callbackUrl: "/" })}
-                    className="rounded-md px-2 py-2 text-left text-muted transition hover:bg-raised2 hover:text-foam"
+                    className="rounded-md px-2 py-2 text-left text-sm transition"
+                    style={{ color: "rgba(180,190,240,0.6)" }}
+                    onMouseOver={e => (e.currentTarget.style.color = "#eef2ff")}
+                    onMouseOut={e => (e.currentTarget.style.color = "rgba(180,190,240,0.6)")}
                   >
                     log out
                   </button>
@@ -104,15 +112,17 @@ export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
           <>
             <Link
               href="/login"
-              className="rounded-full border border-raised2 px-3 py-1 text-muted transition hover:border-marquee/50 hover:text-foam"
+              className="aura-btn"
+              style={{ padding: "6px 16px", borderRadius: 999, fontSize: 12 }}
             >
               log in
             </Link>
             <Link
               href="/signup"
-              className="rounded-full bg-marquee px-3 py-1 font-semibold text-void transition hover:bg-marquee2"
+              className="aura-btn aura-btn-primary"
+              style={{ padding: "6px 16px", borderRadius: 999, fontSize: 12 }}
             >
-              create profile
+              sign up
             </Link>
           </>
         )}

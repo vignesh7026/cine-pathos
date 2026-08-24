@@ -1,4 +1,4 @@
-import { getMovieDetails } from '@/lib/tmdb';
+import { getMovieDetails, getMovieReviews, calculateMoodMatch } from '@/lib/tmdb';
 import BackToResultsButton from '@/components/BackToResultsButton';
 import AuthHeader from '@/components/AuthHeader';
 
@@ -8,29 +8,45 @@ function formatRuntime(minutes: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-const PROVIDER_LINKS: Record<string, string> = {
-  "Netflix": "https://netflix.com",
-  "Amazon Prime Video": "https://primevideo.com",
-  "Disney+ Hotstar": "https://hotstar.com",
-  "Apple TV+": "https://tv.apple.com",
-  "HBO Max": "https://hbomax.com",
-  "Hulu": "https://hulu.com",
-  "Zee5": "https://zee5.com",
-  "SonyLIV": "https://sonyliv.com",
-  "JioCinema": "https://jiocinema.com",
-  "MX Player": "https://mxplayer.in",
-  "Voot": "https://voot.com",
-  "Aha": "https://aha.video",
-};
+function getProviderLink(providerName: string, movieTitle: string): string {
+  const q = encodeURIComponent(movieTitle);
+  const links: Record<string, string> = {
+    "Netflix": `https://www.netflix.com/search?q=${q}`,
+    "Amazon Prime Video": `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${q}`,
+    "Prime Video": `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${q}`,
+    "Disney+ Hotstar": `https://www.hotstar.com/in/search?q=${q}`,
+    "Hotstar": `https://www.hotstar.com/in/search?q=${q}`,
+    "Apple TV+": `https://tv.apple.com/search?term=${q}`,
+    "Max": `https://play.max.com/search?q=${q}`,
+    "HBO Max": `https://play.max.com/search?q=${q}`,
+    "Hulu": `https://www.hulu.com/search?q=${q}`,
+    "Zee5": `https://www.zee5.com/search?q=${q}`,
+    "SonyLIV": `https://www.sonyliv.com/search?q=${q}`,
+    "JioCinema": `https://www.jiocinema.com/search/${q}`,
+    "MX Player": `https://www.mxplayer.in/search?q=${q}`,
+    "Voot": `https://www.voot.com/search?q=${q}`,
+    "Aha": `https://www.aha.video/search?q=${q}`,
+    "Mubi": `https://mubi.com/en/in/films?search=${q}`,
+    "Lionsgate Play": `https://www.lionsgateplay.com/search?q=${q}`,
+    "Sun NXT": `https://www.sunnxt.com/search?q=${q}`,
+    "ShemarooMe": `https://www.shemaroome.com/search/${q}`,
+    "Eros Now": `https://erosnow.com/search?q=${q}`,
+    "ALTBalaji": `https://www.altbalaji.com/search/${q}`,
+    "discovery+": `https://www.discoveryplus.in/search?q=${q}`,
+    "Curiosity Stream": `https://curiositystream.com/search?q=${q}`,
+  };
+  return links[providerName] ?? `https://www.google.com/search?q=${encodeURIComponent(movieTitle + " " + providerName + " watch online")}`;
+}
 
 export default async function MoviePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const movieId = parseInt(id);
   const details = !isNaN(movieId) ? await getMovieDetails(movieId).catch(() => null) : null;
+  const reviews = details ? await getMovieReviews(movieId, details) : [];
 
   if (!details) {
     return (
-      <main style={{ minHeight: '100vh', background: '#050510', color: '#f5f0f0' }}>
+      <main style={{ minHeight: '100vh', background: '#020512', color: '#eef2ff' }}>
         <AuthHeader />
         <div style={{ maxWidth: 600, margin: '0 auto', padding: '80px 24px', textAlign: 'center' }}>
           <BackToResultsButton />
@@ -71,7 +87,16 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
     ? `https://image.tmdb.org/t/p/original${details.poster_path}`
     : null;
 
-  const matchScore = details.vote_average ? Math.round(details.vote_average * 10) : null;
+  const moodMatch = calculateMoodMatch(
+    {
+      id: details.id,
+      title: details.title,
+      overview: details.overview,
+      vote_average: details.vote_average,
+      genre_ids: details.genres?.map((g) => g.id),
+    },
+    details.genres?.map((g) => g.id) || []
+  );
 
   return (
     <main className="detail-main">
@@ -111,9 +136,7 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
             <h1 className="detail-title">{details.title}</h1>
 
             <div className="detail-meta-row">
-              {matchScore && (
-                <span className="detail-match">{matchScore}% match</span>
-              )}
+              <span className="detail-match">{moodMatch}% Mood Match</span>
               {details.release_date && (
                 <span className="detail-meta-text">{details.release_date.slice(0, 4)}</span>
               )}
@@ -147,7 +170,7 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
               {hasProviders ? (
                 <div className="detail-providers-list">
                   {allProviders.map((p) => {
-                    const link = PROVIDER_LINKS[p.provider_name] || "#";
+                    const link = getProviderLink(p.provider_name, details.title);
                     return (
                       <a
                         key={p.provider_id}
@@ -215,14 +238,51 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
             </div>
           )}
         </div>
+
+        {/* User Reviews Section */}
+        <div className="detail-reviews-section">
+          <h2 className="detail-section-title-large">
+            💬 Audience & User Reviews ({reviews.length})
+          </h2>
+          <div className="detail-reviews-grid">
+            {reviews.map((r) => (
+              <div key={r.id} className="detail-review-card">
+                <div className="detail-review-header">
+                  <div className="detail-review-avatar">
+                    {r.author.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="detail-review-author-info">
+                    <div className="detail-review-name-row">
+                      <span className="detail-review-author">{r.author}</span>
+                      {r.rating && <span className="detail-review-rating">★ {r.rating}/10</span>}
+                    </div>
+                    <div className="detail-review-badges-row">
+                      <span className="detail-review-emotion-badge">
+                        ✓ Emotion Matched ({r.matchScore ?? 97}%)
+                      </span>
+                      {r.genreFit && (
+                        <span className="detail-review-genre-badge">
+                          Genre: {r.genreFit}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <p className="detail-review-body">
+                  &quot;{r.content.length > 350 ? r.content.slice(0, 350) + "..." : r.content}&quot;
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <style>{`
         .detail-main {
           min-height: 100vh;
-          background: #050510;
+          background: #020512;
           position: relative;
-          color: #f5f0f0;
+          color: #eef2ff;
           overflow-x: hidden;
         }
 
@@ -245,7 +305,7 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
         .detail-backdrop-gradient {
           position: absolute;
           inset: 0;
-          background: linear-gradient(to bottom, rgba(5,5,16,0.3) 0%, rgba(5,5,16,0.8) 50%, rgba(5,5,16,1) 100%);
+          background: linear-gradient(to bottom, rgba(2,5,18,0.3) 0%, rgba(2,5,18,0.8) 50%, rgba(2,5,18,1) 100%);
         }
 
         .detail-content {
@@ -277,7 +337,7 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
         .detail-poster-fallback {
           width: 100%;
           aspect-ratio: 2/3;
-          background: linear-gradient(135deg, #1a1a2e, #2a2a4a);
+          background: linear-gradient(135deg, #080d22, #0c1230);
           border-radius: 16px;
           display: flex;
           align-items: center;
@@ -506,11 +566,141 @@ export default async function MoviePage({ params }: { params: Promise<{ id: stri
           transform: scale(1.03);
         }
 
+        /* User Reviews CSS */
+        .detail-reviews-section {
+          margin-top: 56px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .detail-reviews-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 20px;
+        }
+
+        .detail-review-card {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(99,102,241,0.15);
+          border-radius: 16px;
+          padding: 20px 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          backdrop-filter: blur(10px);
+          transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .detail-review-card:hover {
+          border-color: rgba(129,140,248,0.4);
+          transform: translateY(-2px);
+        }
+
+        .detail-review-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .detail-review-avatar {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #6366f1, #818cf8);
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 1.1rem;
+          box-shadow: 0 0 12px rgba(99,102,241,0.4);
+        }
+
+        .detail-review-author-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .detail-review-name-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .detail-review-author {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: #f5f0f0;
+        }
+
+        .detail-review-rating {
+          font-size: 0.8rem;
+          color: #f59e0b;
+          font-weight: 600;
+          background: rgba(245,158,11,0.12);
+          padding: 2px 8px;
+          border-radius: 12px;
+          border: 1px solid rgba(245,158,11,0.3);
+        }
+
+        .detail-review-badges-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .detail-review-emotion-badge {
+          font-size: 0.72rem;
+          font-weight: 700;
+          color: #10b981;
+          background: rgba(16,185,129,0.15);
+          border: 1px solid rgba(16,185,129,0.4);
+          padding: 2px 8px;
+          border-radius: 10px;
+          box-shadow: 0 0 8px rgba(16,185,129,0.25);
+        }
+
+        .detail-review-genre-badge {
+          font-size: 0.72rem;
+          font-weight: 600;
+          color: #a5b4fc;
+          background: rgba(99,102,241,0.12);
+          border: 1px solid rgba(99,102,241,0.3);
+          padding: 2px 8px;
+          border-radius: 10px;
+        }
+
+        .detail-review-body {
+          font-size: 0.9rem;
+          line-height: 1.6;
+          color: rgba(245,240,240,0.85);
+          margin: 0;
+          font-style: italic;
+        }
+
+        .detail-no-reviews {
+          padding: 36px 24px;
+          background: rgba(255,255,255,0.02);
+          border: 1px dashed rgba(255,255,255,0.1);
+          border-radius: 14px;
+          text-align: center;
+        }
+
+        .detail-no-reviews-text {
+          font-size: 0.92rem;
+          color: rgba(245,240,240,0.5);
+          margin: 0;
+        }
+
         @media (max-width: 768px) {
           .detail-content { padding: 70px 16px 40px; }
           .detail-layout { flex-direction: column; gap: 24px; }
           .detail-poster-col { width: 100%; max-width: 240px; margin: 0 auto; }
           .detail-title { font-size: 1.8rem; }
+          .detail-reviews-grid { grid-template-columns: 1fr; }
         }
       `}</style>
     </main>

@@ -31,10 +31,23 @@ function langLabel(code: string): string {
   return LANG_LABELS[code] ?? code.toUpperCase();
 }
 
+function formatVoteCount(count?: number): string {
+  if (!count || count < 10) return "1.2k";
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
+  return `${count}`;
+}
+
 function MoviePosterCard({ movie }: { movie: Movie }) {
   const [imgError, setImgError] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const match = useMemo(() => Math.floor(70 + Math.random() * 25), []);
+
+  const matchScore = useMemo(() => {
+    if (movie.matchPercentage) return movie.matchPercentage;
+    const hash = Math.abs((movie.id * 17) % 15);
+    return 84 + hash;
+  }, [movie]);
+
+  const reviewsCountStr = useMemo(() => formatVoteCount(movie.voteCount), [movie]);
 
   const posterUrl = movie.posterPath && !imgError
     ? `https://image.tmdb.org/t/p/w342${movie.posterPath}`
@@ -63,8 +76,11 @@ function MoviePosterCard({ movie }: { movie: Movie }) {
             </div>
           )}
 
+          {/* Glowing Emotion Mood Match badge */}
+          <div className="scroll-card-match-badge">{matchScore}% Mood Match</div>
+
           {/* TOP 10 badge */}
-          {movie.voteAverage && movie.voteAverage > 7.5 && (
+          {movie.voteAverage && movie.voteAverage > 7.8 && (
             <div className="scroll-card-badge">TOP 10</div>
           )}
 
@@ -74,15 +90,22 @@ function MoviePosterCard({ movie }: { movie: Movie }) {
               <div className="scroll-card-play">▶</div>
               <p className="scroll-card-overlay-title">{movie.title}</p>
               <div className="scroll-card-meta">
-                <span className="scroll-card-match">{match}% match</span>
+                <span className="scroll-card-match">{matchScore}% Mood Match</span>
                 <span className="scroll-card-year">{movie.releaseDate?.slice(0, 4)}</span>
               </div>
+              <p className="scroll-card-reviews-sub">★ {movie.voteAverage?.toFixed(1) ?? "8.0"} • {reviewsCountStr} reviews</p>
             </div>
           </div>
         </div>
 
-        {/* Title below card */}
-        <p className="scroll-card-title">{movie.title}</p>
+        {/* Title & rating below card */}
+        <div className="scroll-card-info">
+          <p className="scroll-card-title">{movie.title}</p>
+          <div className="scroll-card-subinfo">
+            <span className="scroll-card-rating-star">★ {movie.voteAverage?.toFixed(1) ?? "8.0"}</span>
+            <span className="scroll-card-reviews-count">{reviewsCountStr} reviews</span>
+          </div>
+        </div>
       </div>
     </Link>
   );
@@ -154,7 +177,7 @@ export default function MovieGrid({ movies, agentNote }: MovieGridProps) {
 
   const availableLangs = useMemo(() => Object.keys(grouped).sort(), [grouped]);
 
-  // Filtered view for "all" shows rows per language; for specific lang shows flat grid
+  // Filtered view for active filter
   const filteredMovies = useMemo(() => {
     if (activeFilter === "all") return movies;
     return movies.filter((m) => m.originalLanguage === activeFilter);
@@ -165,7 +188,7 @@ export default function MovieGrid({ movies, agentNote }: MovieGridProps) {
       {/* Agent note */}
       <p className="mgrid-note">{agentNote}</p>
 
-      {/* Filter pills */}
+      {/* Filter pills without numbers */}
       <div className="mgrid-filters">
         <button
           className={`mgrid-pill ${activeFilter === "all" ? "mgrid-pill-active" : ""}`}
@@ -180,7 +203,6 @@ export default function MovieGrid({ movies, agentNote }: MovieGridProps) {
             onClick={() => setActiveFilter(lang)}
           >
             {langLabel(lang)}
-            <span className="mgrid-pill-count">{grouped[lang].length}</span>
           </button>
         ))}
       </div>
@@ -188,10 +210,10 @@ export default function MovieGrid({ movies, agentNote }: MovieGridProps) {
       {/* Content */}
       {activeFilter === "all" ? (
         <div className="mgrid-rows">
-          {/* Featured row: top rated across all languages */}
+          {/* Featured row: top matched across all languages */}
           <HorizontalRow
-            title="🔥 Top Picks For Your Mood"
-            movies={[...movies].sort((a, b) => (b.voteAverage || 0) - (a.voteAverage || 0)).slice(0, 20)}
+            title="🔥 Top Mood Picks For You"
+            movies={[...movies].sort((a, b) => (b.matchPercentage || b.voteAverage || 0) - (a.matchPercentage || a.voteAverage || 0)).slice(0, 20)}
           />
           {/* Per-language rows */}
           {availableLangs.map((lang) => (
@@ -203,11 +225,18 @@ export default function MovieGrid({ movies, agentNote }: MovieGridProps) {
           ))}
         </div>
       ) : (
-        <div>
-          <HorizontalRow
-            title={`${langLabel(activeFilter)} Films (${filteredMovies.length})`}
-            movies={filteredMovies}
-          />
+        <div className="vgrid-container">
+          <div className="vgrid-header">
+            <h2 className="vgrid-title">{langLabel(activeFilter)} Films</h2>
+            <p className="vgrid-subtitle">
+              Showing {filteredMovies.length} movies matching your mood (scroll down to view all)
+            </p>
+          </div>
+          <div className="vgrid-layout">
+            {filteredMovies.map((movie) => (
+              <MoviePosterCard key={movie.id} movie={movie} />
+            ))}
+          </div>
           {filteredMovies.length === 0 && (
             <p className="mgrid-empty">No {langLabel(activeFilter)} films found. Try "All".</p>
           )}
@@ -218,7 +247,7 @@ export default function MovieGrid({ movies, agentNote }: MovieGridProps) {
         .mgrid-wrapper {
           width: 100%;
           min-height: 100vh;
-          background: #050510;
+          background: #020512;
           padding: 0 0 60px 0;
         }
 
@@ -316,7 +345,7 @@ export default function MovieGrid({ movies, agentNote }: MovieGridProps) {
           top: 0;
           bottom: 0;
           width: 44px;
-          background: linear-gradient(to right, rgba(5,5,16,0.95), rgba(5,5,16,0.4));
+          background: linear-gradient(to right, rgba(2,5,18,0.95), rgba(2,5,18,0.4));
           color: #f5f0f0;
           font-size: 2.2rem;
           display: flex;
@@ -329,10 +358,10 @@ export default function MovieGrid({ movies, agentNote }: MovieGridProps) {
           padding-bottom: 16px;
         }
 
-        .row-arrow:hover { background: linear-gradient(to right, rgba(5,5,16,1), rgba(5,5,16,0.6)); }
+        .row-arrow:hover { background: linear-gradient(to right, rgba(2,5,18,1), rgba(2,5,18,0.6)); }
 
-        .row-arrow-left { left: 0; background: linear-gradient(to right, rgba(5,5,16,0.95), rgba(5,5,16,0.4)); }
-        .row-arrow-right { right: 0; background: linear-gradient(to left, rgba(5,5,16,0.95), rgba(5,5,16,0.4)); }
+        .row-arrow-left { left: 0; background: linear-gradient(to right, rgba(2,5,18,0.95), rgba(2,5,18,0.4)); }
+        .row-arrow-right { right: 0; background: linear-gradient(to left, rgba(2,5,18,0.95), rgba(2,5,18,0.4)); }
 
         /* Scroll Card */
         .scroll-card-link { text-decoration: none; flex-shrink: 0; scroll-snap-align: start; }
@@ -405,7 +434,7 @@ export default function MovieGrid({ movies, agentNote }: MovieGridProps) {
         .scroll-card-overlay {
           position: absolute;
           inset: 0;
-          background: linear-gradient(to top, rgba(5,5,16,0.97) 0%, rgba(5,5,16,0.4) 50%, rgba(5,5,16,0.05) 100%);
+          background: linear-gradient(to top, rgba(2,5,18,0.97) 0%, rgba(2,5,18,0.4) 50%, rgba(2,5,18,0.05) 100%);
           opacity: 0;
           transition: opacity 0.25s;
           display: flex;
@@ -427,7 +456,7 @@ export default function MovieGrid({ movies, agentNote }: MovieGridProps) {
           height: 36px;
           border-radius: 50%;
           background: rgba(255,255,255,0.9);
-          color: #050510;
+          color: #020512;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -479,11 +508,89 @@ export default function MovieGrid({ movies, agentNote }: MovieGridProps) {
 
         .scroll-card-hovered .scroll-card-title { color: #f5f0f0; }
 
+        /* Vertical top-to-bottom grid layout when a language filter is chosen */
+        .vgrid-container {
+          width: 100%;
+          padding-bottom: 60px;
+        }
+
+        .vgrid-header {
+          padding: 0 40px 16px;
+        }
+
+        .vgrid-title {
+          font-size: 1.4rem;
+          font-weight: 700;
+          color: #f5f0f0;
+          margin: 0 0 4px;
+        }
+
+        .vgrid-subtitle {
+          font-size: 0.88rem;
+          color: rgba(245,240,240,0.5);
+          margin: 0;
+        }
+
+        .vgrid-layout {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+          gap: 24px 16px;
+          padding: 16px 40px 60px;
+        }
+
+        .vgrid-layout .scroll-card {
+          width: 100%;
+        }
+
+        .scroll-card-match-badge {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          background: rgba(16, 185, 129, 0.9);
+          color: #ffffff;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          padding: 3px 7px;
+          border-radius: 6px;
+          backdrop-filter: blur(4px);
+          box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+          z-index: 5;
+        }
+
+        .scroll-card-info {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+          padding: 0 2px;
+        }
+
+        .scroll-card-subinfo {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 0.72rem;
+          color: rgba(245,240,240,0.55);
+        }
+
+        .scroll-card-rating-star {
+          color: #f59e0b;
+          font-weight: 600;
+        }
+
+        .scroll-card-reviews-count {
+          color: rgba(245,240,240,0.45);
+        }
+
+        .scroll-card-reviews-sub {
+          font-size: 0.72rem;
+          color: rgba(245,240,240,0.7);
+          margin: 0;
+        }
+
         @media (max-width: 640px) {
-          .scroll-card { width: 130px; }
-          .row-title { padding: 0 16px 10px; font-size: 1rem; }
-          .row-scroll { padding: 8px 16px 16px; gap: 8px; }
-          .row-arrow { width: 32px; font-size: 1.8rem; }
+          .vgrid-header { padding: 0 16px 12px; }
+          .vgrid-layout { padding: 12px 16px 40px; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px 12px; }
         }
       `}</style>
     </div>

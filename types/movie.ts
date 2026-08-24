@@ -1,3 +1,15 @@
+export interface MovieReview {
+  id: string;
+  author: string;
+  content: string;
+  rating?: number;
+  createdAt?: string;
+  avatarPath?: string;
+  emotionMatched?: boolean;
+  genreFit?: string;
+  matchScore?: number;
+}
+
 export interface Movie {
   id: number;
   title: string;
@@ -5,10 +17,13 @@ export interface Movie {
   posterPath: string | null;
   releaseDate: string;
   voteAverage: number;
+  voteCount?: number;
   genreIds: number[];
   originalLanguage: string;
   runtime?: number;
   genres?: string[];
+  matchPercentage?: number;
+  reviews?: MovieReview[];
 }
 
 export interface StreamingProvider {

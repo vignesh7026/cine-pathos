@@ -1,3 +1,4 @@
+try { require("node:dns").setDefaultResultOrder("ipv4first"); } catch {}
 const { Groq } = require("groq-sdk");
 require("dotenv").config({ path: ".env.local" });
 

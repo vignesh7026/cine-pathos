@@ -15,65 +15,46 @@ export default function MoodHome() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden">
-      {/* MagicRings background – light purple */}
+    <main className="relative min-h-screen overflow-hidden" style={{ background: "#020512" }}>
+      {/* Navy blue deep background gradient */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 100% 70% at 50% -5%, rgba(99,102,241,0.18) 0%, rgba(2,5,18,0) 65%), " +
+            "radial-gradient(ellipse 60% 40% at 80% 90%, rgba(139,92,246,0.08) 0%, transparent 55%)",
+        }}
+      />
+
+      {/* Animated rings — indigo/violet navy */}
       <div className="absolute inset-0">
         <MagicRings
-          color="#C084FC"          // light purple
-          colorTwo="#A78BFA"       // soft violet
+          color="#6366f1"
+          colorTwo="#818cf8"
           ringCount={7}
-          speed={1}
-          attenuation={10}
-          lineThickness={2}
-          baseRadius={0.35}
+          speed={0.85}
+          attenuation={12}
+          lineThickness={1.5}
+          baseRadius={0.32}
           radiusStep={0.1}
-          scaleRate={0.1}
-          opacity={0.95}
+          scaleRate={0.08}
+          opacity={0.7}
           blur={0}
-          noiseAmount={0.05}
+          noiseAmount={0.04}
           rotation={0}
           ringGap={1.5}
           fadeIn={0.7}
           fadeOut={0.5}
           followMouse={true}
-          mouseInfluence={0.15}
-          hoverScale={1.2}
-          parallax={0.05}
+          mouseInfluence={0.12}
+          hoverScale={1.15}
+          parallax={0.04}
           clickBurst={true}
         />
       </div>
 
-      {/* Your existing components – unchanged */}
       <AuthHeader />
       <MoodInput onSubmit={handleSubmit} isLoading={isNavigating} />
-
-      {/* Text contrast – off‑white colour, no layout changes */}
-      <style>{`
-        /* All text inside main (except the background canvas) – off‑white */
-        main > *:not(.absolute) {
-          color: #f5f0f0 !important;
-          text-shadow: 0 0 20px rgba(0,0,0,0.6);
-        }
-        main input {
-          color: #f5f0f0 !important;
-        }
-        main input::placeholder {
-          color: rgba(245, 240, 240, 0.6) !important;
-        }
-        main button {
-          color: #f5f0f0 !important;
-        }
-        main h1, main h2, main h3, main p, main span, main label {
-          color: #f5f0f0 !important;
-        }
-        /* optional: keep font weights as desired */
-        main h1, main h2, main h3 {
-          font-weight: 700 !important;
-        }
-        main p, main span, main label {
-          font-weight: 500 !important;
-        }
-      `}</style>
     </main>
   );
-} 
+}

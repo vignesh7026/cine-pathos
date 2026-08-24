@@ -154,10 +154,19 @@ export async function runAgentLoop(
         let toolResult: unknown;
         try {
           const result = await executeTool(toolName, args);
-          toolResult = result.output;
 
           if (toolName === "search_movies") {
             lastMovies = (result.output as { movies: Movie[] }).movies;
+            toolResult = {
+              total_found: lastMovies.length,
+              sample_movies: lastMovies.slice(0, 15).map((m) => ({
+                id: m.id,
+                title: m.title,
+                language: m.originalLanguage,
+              })),
+            };
+          } else {
+            toolResult = result.output;
           }
         } catch (err) {
           toolResult = {

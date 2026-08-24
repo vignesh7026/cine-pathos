@@ -121,7 +121,7 @@ function ResultsContent() {
 
   if (!mounted) {
     return (
-      <main className="min-h-screen bg-[#050510]">
+      <main className="min-h-screen bg-[#020512]">
         <AuthHeader />
         <div className="flex min-h-screen items-center justify-center px-4">
           <p className="text-sm text-offwhite/60">Loading…</p>
@@ -132,7 +132,7 @@ function ResultsContent() {
 
   if (!initialMood) {
     return (
-      <main className="min-h-screen bg-[#050510]">
+      <main className="min-h-screen bg-[#020512]">
         <AuthHeader />
         <div className="flex min-h-screen items-center justify-center px-4">
           <div className="max-w-xl text-center">
@@ -152,7 +152,7 @@ function ResultsContent() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050510] pt-14">
+    <main className="min-h-screen bg-[#020512] pt-14">
       <AuthHeader />
 
       <div className="relative z-10 w-full px-0 py-0">
