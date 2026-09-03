@@ -1,26 +1,62 @@
 import { promises as fs } from "fs";
 import path from "path";
+import os from "os";
 import { randomUUID } from "crypto";
 import type { Profile } from "@/types/profile";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const PROFILES_FILE = path.join(DATA_DIR, "profiles.json");
-
 const MAX_PROFILES_PER_USER = 5;
 
-async function ensureStore(): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
+let resolvedProfilesPath: string | null = null;
+
+async function getWritableProfilesFilePath(): Promise<string> {
+  if (resolvedProfilesPath) return resolvedProfilesPath;
+
+  const localDataDir = path.join(process.cwd(), "data");
+  const localFile = path.join(localDataDir, "profiles.json");
+
   try {
-    await fs.access(PROFILES_FILE);
+    await fs.mkdir(localDataDir, { recursive: true });
+    const testFile = path.join(localDataDir, ".test_profiles_write");
+    await fs.writeFile(testFile, "1");
+    await fs.unlink(testFile);
+    resolvedProfilesPath = localFile;
+    return localFile;
   } catch {
-    await fs.writeFile(PROFILES_FILE, "[]", "utf-8");
+    // Fallback to /tmp in read-only serverless environments (e.g. Vercel)
+    const tmpDir = path.join(os.tmpdir(), "mood-movies-data");
+    await fs.mkdir(tmpDir, { recursive: true });
+    const tmpFile = path.join(tmpDir, "profiles.json");
+
+    try {
+      await fs.access(tmpFile);
+    } catch {
+      try {
+        const seedData = await fs.readFile(localFile, "utf-8");
+        await fs.writeFile(tmpFile, seedData, "utf-8");
+      } catch {
+        await fs.writeFile(tmpFile, "[]", "utf-8");
+      }
+    }
+
+    resolvedProfilesPath = tmpFile;
+    return tmpFile;
   }
 }
 
-async function readProfiles(): Promise<Profile[]> {
-  await ensureStore();
-  const raw = await fs.readFile(PROFILES_FILE, "utf-8");
+async function ensureStore(): Promise<string> {
+  const filePath = await getWritableProfilesFilePath();
   try {
+    await fs.access(filePath);
+  } catch {
+    await fs.writeFile(filePath, "[]", "utf-8");
+  }
+  return filePath;
+}
+
+async function readProfiles(): Promise<Profile[]> {
+  const filePath = await ensureStore();
+  try {
+    const raw = await fs.readFile(filePath, "utf-8");
     return JSON.parse(raw) as Profile[];
   } catch {
     return [];
@@ -28,8 +64,8 @@ async function readProfiles(): Promise<Profile[]> {
 }
 
 async function writeProfiles(profiles: Profile[]): Promise<void> {
-  await ensureStore();
-  await fs.writeFile(PROFILES_FILE, JSON.stringify(profiles, null, 2), "utf-8");
+  const filePath = await ensureStore();
+  await fs.writeFile(filePath, JSON.stringify(profiles, null, 2), "utf-8");
 }
 
 export async function getProfilesForUser(userId: string): Promise<Profile[]> {

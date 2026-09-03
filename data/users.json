@@ -12,5 +12,19 @@
     "email": "kiranguruv58@gmail.com",
     "passwordHash": "$2b$10$bhZeiG75IRGzHhUdG7xOYu/0l5Ngi0Ff8m2xl6INF3pyjF8tA9tjK",
     "createdAt": "2026-08-01T12:42:31.449Z"
+  },
+  {
+    "id": "6a9ea4c1-a26d-40f7-9895-6846687b2239",
+    "name": "vickyy",
+    "email": "crazysoulvicky7026@gmail.com",
+    "passwordHash": "$2b$10$ulzlJmP1LTrVtyYf.Va0duvIuqBb3sCjr.m.xsklL7ewbbS6lt2na",
+    "createdAt": "2026-09-03T21:07:19.871Z"
+  },
+  {
+    "id": "1083dc22-96ed-463e-ba2b-f245f56d47ef",
+    "name": "maniii",
+    "email": "vigneshwaran.g@bcah.christuniversity.in",
+    "passwordHash": "$2b$10$VRT/ljBg6o/hcJMmQor6rOm5nS8UXsZnmkHV.YFw6UY.He02y9zn6",
+    "createdAt": "2026-09-03T21:10:59.974Z"
   }
 ]

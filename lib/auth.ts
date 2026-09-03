@@ -4,6 +4,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { findUserByEmail } from "@/lib/userStore";
 
 export const authOptions: NextAuthOptions = {
+  secret:
+    process.env.NEXTAUTH_SECRET ||
+    "mood-movies-secret-auth-token-key-32-chars-long",
   session: {
     strategy: "jwt",
   },

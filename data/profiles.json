@@ -356,5 +356,21 @@
     "avatarColor": "#e2725b",
     "createdAt": "2026-08-20T10:06:04.052Z",
     "moodHistory": []
+  },
+  {
+    "id": "c8c3b249-092f-4116-bc5b-dff734fc9bf9",
+    "userId": "6a9ea4c1-a26d-40f7-9895-6846687b2239",
+    "name": "vickyy",
+    "avatarColor": "#6366f1",
+    "createdAt": "2026-09-03T21:07:19.874Z",
+    "moodHistory": []
+  },
+  {
+    "id": "7aca7138-1b8a-4cc6-884a-656432ba75fe",
+    "userId": "1083dc22-96ed-463e-ba2b-f245f56d47ef",
+    "name": "maniii",
+    "avatarColor": "#6366f1",
+    "createdAt": "2026-09-03T21:10:59.978Z",
+    "moodHistory": []
   }
 ]

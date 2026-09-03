@@ -26,7 +26,12 @@ export async function middleware(req: NextRequest) {
   );
   if (isPublic) return NextResponse.next();
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({
+    req,
+    secret:
+      process.env.NEXTAUTH_SECRET ||
+      "mood-movies-secret-auth-token-key-32-chars-long",
+  });
 
   // Not logged in → redirect to login
   if (!token) {
