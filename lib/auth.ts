@@ -22,7 +22,8 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const user = await findUserByEmail(credentials.email);
+        const email = credentials.email.trim();
+        const user = await findUserByEmail(email);
         if (!user) {
           return null;
         }

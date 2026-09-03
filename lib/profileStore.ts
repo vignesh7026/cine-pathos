@@ -1,5 +1,6 @@
-﻿import { promises as fs } from "fs";
+import { promises as fs } from "fs";
 import path from "path";
+import { randomUUID } from "crypto";
 import type { Profile } from "@/types/profile";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -54,7 +55,7 @@ export async function createProfile(input: {
   }
 
   const newProfile: Profile = {
-    id: crypto.randomUUID(),
+    id: randomUUID(),
     userId: input.userId,
     name: input.name,
     avatarColor: input.avatarColor,

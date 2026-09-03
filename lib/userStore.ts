@@ -1,5 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { randomUUID } from "crypto";
 
 export interface StoredUser {
   id: string;
@@ -40,7 +41,8 @@ export async function findUserByEmail(
   email: string
 ): Promise<StoredUser | undefined> {
   const users = await readUsers();
-  return users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  const normalizedEmail = email.trim().toLowerCase();
+  return users.find((u) => u.email.toLowerCase() === normalizedEmail);
 }
 
 export async function createUser(input: {
@@ -51,9 +53,9 @@ export async function createUser(input: {
   const users = await readUsers();
 
   const newUser: StoredUser = {
-    id: crypto.randomUUID(),
-    name: input.name,
-    email: input.email,
+    id: randomUUID(),
+    name: input.name.trim(),
+    email: input.email.trim().toLowerCase(),
     passwordHash: input.passwordHash,
     createdAt: new Date().toISOString(),
   };

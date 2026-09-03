@@ -9,10 +9,31 @@ interface AuthHeaderProps {
   hideBrand?: boolean; // new prop
 }
 
+function ReelMark() {
+  return (
+    <svg
+      className="brand-reel"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="2.2" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="5.6" r="1.4" fill="currentColor" />
+      <circle cx="12" cy="18.4" r="1.4" fill="currentColor" />
+      <circle cx="5.6" cy="12" r="1.4" fill="currentColor" />
+      <circle cx="18.4" cy="12" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
 export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
   const { data: session, status } = useSession();
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,6 +54,13 @@ export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const showProfileClause =
     activeProfile &&
     activeProfile.name.trim().toLowerCase() !==
@@ -44,14 +72,25 @@ export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
     .toUpperCase();
 
   return (
-    <header className="glass-chrome sticky top-0 z-50 flex h-14 items-center justify-between px-6">
+    <header
+      className={`glass-chrome sticky top-0 z-50 flex items-center justify-between px-6 ${
+        scrolled ? "glass-chrome--scrolled h-12" : "h-14"
+      }`}
+    >
       {!hideBrand && (
-        <Link
-          href="/"
-          className="font-display text-lg font-normal tracking-[0.08em]"
-          style={{ color: "#818cf8", letterSpacing: "0.2em", fontFamily: "Georgia, serif", fontSize: "1.1rem", textShadow: "0 0 20px rgba(99,102,241,0.4)" }}
-        >
-          MARQUEE
+        <Link href="/" className="brand-link group flex items-center gap-2">
+          <ReelMark />
+          <span
+            className="brand-wordmark font-display font-normal"
+            style={{
+              fontFamily: "Georgia, serif",
+              fontSize: "1.05rem",
+              letterSpacing: "0.22em",
+              paddingLeft: "0.22em",
+            }}
+          >
+            MARQUEE
+          </span>
         </Link>
       )}
       {/* If hideBrand is true, we render nothing on the left so the header stays balanced */}
@@ -62,15 +101,41 @@ export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
           <div ref={menuRef} className="relative">
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              className="flex h-8 w-8 items-center justify-center rounded-full border transition"
-              style={{ background: "rgba(99,102,241,0.15)", borderColor: "rgba(99,102,241,0.35)", color: "#c7d2fe", fontWeight: 600 }}
+              className="avatar-ring flex h-8 items-center gap-1.5 rounded-full pl-1 pr-2"
+              style={{ fontWeight: 600 }}
               aria-label="Account menu"
+              aria-expanded={menuOpen}
             >
-              {initial}
+              <span
+                className="flex h-6 w-6 items-center justify-center rounded-full text-[11px]"
+                style={{ background: "rgba(99,102,241,0.28)" }}
+              >
+                {initial}
+              </span>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  transition: "transform 0.2s ease",
+                  transform: menuOpen ? "rotate(180deg)" : "none",
+                  opacity: 0.7,
+                }}
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 top-10 w-56 rounded-xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md" style={{ background: "rgba(8,13,34,0.95)", border: "1px solid rgba(99,102,241,0.2)" }}>
+              <div
+                className="menu-in absolute right-0 top-11 w-56 rounded-xl p-3 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md"
+                style={{ background: "rgba(8,13,34,0.96)", border: "1px solid rgba(99,102,241,0.2)" }}
+              >
                 <p className="px-1 pb-2 text-muted">
                   hi, <span className="text-foam">{session.user.name}</span>
                   {showProfileClause && (
@@ -86,22 +151,32 @@ export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
                   {activeProfile && (
                     <Link
                       href="/profiles"
-                      className="rounded-md px-2 py-2 text-left text-sm transition"
+                      className="flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition"
                       style={{ color: "rgba(180,190,240,0.6)" }}
-                      onMouseOver={e => (e.currentTarget.style.color = "#eef2ff")}
-                      onMouseOut={e => (e.currentTarget.style.color = "rgba(180,190,240,0.6)")}
+                      onMouseOver={(e) => (e.currentTarget.style.color = "#eef2ff")}
+                      onMouseOut={(e) => (e.currentTarget.style.color = "rgba(180,190,240,0.6)")}
                       onClick={() => setMenuOpen(false)}
                     >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
                       switch profile
                     </Link>
                   )}
                   <button
                     onClick={() => signOut({ callbackUrl: "/" })}
-                    className="rounded-md px-2 py-2 text-left text-sm transition"
+                    className="flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition"
                     style={{ color: "rgba(180,190,240,0.6)" }}
-                    onMouseOver={e => (e.currentTarget.style.color = "#eef2ff")}
-                    onMouseOut={e => (e.currentTarget.style.color = "rgba(180,190,240,0.6)")}
+                    onMouseOver={(e) => (e.currentTarget.style.color = "#eef2ff")}
+                    onMouseOut={(e) => (e.currentTarget.style.color = "rgba(180,190,240,0.6)")}
                   >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <path d="m16 17 5-5-5-5" />
+                      <path d="M21 12H9" />
+                    </svg>
                     log out
                   </button>
                 </div>
@@ -119,7 +194,7 @@ export default function AuthHeader({ hideBrand = false }: AuthHeaderProps) {
             </Link>
             <Link
               href="/signup"
-              className="aura-btn aura-btn-primary"
+              className="aura-btn aura-btn-primary aura-btn--shine"
               style={{ padding: "6px 16px", borderRadius: 999, fontSize: 12 }}
             >
               sign up

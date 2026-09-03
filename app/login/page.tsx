@@ -5,6 +5,19 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+function ReelIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="2.4" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="5.4" r="1.5" fill="currentColor" />
+      <circle cx="12" cy="18.6" r="1.5" fill="currentColor" />
+      <circle cx="5.4" cy="12" r="1.5" fill="currentColor" />
+      <circle cx="18.6" cy="12" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -28,91 +41,100 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{
-      minHeight: "100vh",
-      background: "#020512",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "24px",
-      position: "relative",
-      overflow: "hidden",
-    }}>
-      {/* Ambient background glow */}
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none",
-        background:
-          "radial-gradient(ellipse 90% 60% at 50% -5%, rgba(99,102,241,0.18) 0%, transparent 60%), " +
-          "radial-gradient(ellipse 50% 35% at 90% 100%, rgba(139,92,246,0.08) 0%, transparent 55%)",
-      }} />
+    <main className="auth-stage flex min-h-screen items-center justify-center px-6 py-12">
+      {/* Layered ambient background */}
+      <div className="auth-blob auth-blob--1" />
+      <div className="auth-blob auth-blob--2" />
+      <div className="auth-blob auth-blob--3" />
+      <div className="auth-grain" />
+      <div className="auth-vignette" />
 
-      {/* Animated orb */}
-      <div style={{
-        position: "absolute", width: 400, height: 400,
-        borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)",
-        top: "50%", left: "50%",
-        transform: "translate(-50%, -60%)",
-        pointerEvents: "none",
-        animation: "loginOrb 6s ease-in-out infinite",
-      }} />
+      <div className="relative z-10 w-full" style={{ maxWidth: 400 }}>
+        {/* Brand */}
+        <div className="auth-rise" style={{ animationDelay: "40ms" }}>
+          <div className="mb-3 flex items-center justify-center gap-2.5">
+            <span className="brand-reel">
+              <ReelIcon size={22} />
+            </span>
+            <span
+              className="brand-wordmark"
+              style={{
+                fontFamily: "Georgia, serif",
+                fontSize: "1.55rem",
+                fontWeight: 700,
+                letterSpacing: "0.34em",
+                paddingLeft: "0.34em",
+              }}
+            >
+              MARQUEE
+            </span>
+          </div>
+        </div>
 
-      <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: 400 }}>
-        {/* Logo */}
-        <p style={{
-          textAlign: "center",
-          fontFamily: "Georgia, serif",
-          fontSize: "1.6rem",
-          fontWeight: 700,
-          letterSpacing: "0.35em",
-          color: "#818cf8",
-          marginBottom: 8,
-          textShadow: "0 0 30px rgba(99,102,241,0.5)",
-        }}>MARQUEE</p>
+        <p
+          className="auth-rise"
+          style={{
+            animationDelay: "110ms",
+            textAlign: "center",
+            fontFamily: "monospace",
+            fontSize: 11,
+            letterSpacing: "0.3em",
+            textTransform: "uppercase",
+            color: "rgba(129,140,248,0.65)",
+            marginBottom: 6,
+          }}
+        >
+          welcome back
+        </p>
 
-        <p style={{
-          textAlign: "center",
-          fontFamily: "monospace",
-          fontSize: 11,
-          letterSpacing: "0.28em",
-          textTransform: "uppercase",
-          color: "rgba(129,140,248,0.6)",
-          marginBottom: 8,
-        }}>welcome back</p>
+        <h1
+          className="auth-rise"
+          style={{
+            animationDelay: "170ms",
+            textAlign: "center",
+            fontSize: "1.95rem",
+            fontWeight: 300,
+            color: "#eef2ff",
+            marginBottom: 26,
+            letterSpacing: "0.01em",
+          }}
+        >
+          Sign in to your seat
+        </h1>
 
-        <h1 style={{
-          textAlign: "center",
-          fontSize: "1.9rem",
-          fontWeight: 300,
-          color: "#eef2ff",
-          marginBottom: 32,
-          letterSpacing: "0.01em",
-        }}>Sign in</h1>
+        {/* Card */}
+        <div className="auth-card auth-card-in" style={{ animationDelay: "220ms" }}>
+          {/* Cinema marquee lights */}
+          <div className="marquee-bulbs" aria-hidden="true">
+            {Array.from({ length: 11 }).map((_, i) => (
+              <span key={i} style={{ animationDelay: `${i * 130}ms` }} />
+            ))}
+          </div>
 
-        {/* Glass card */}
-        <div style={{
-          background: "rgba(8,13,34,0.85)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          border: "1px solid rgba(99,102,241,0.18)",
-          borderRadius: 20,
-          padding: "32px 28px",
-          boxShadow: "0 0 40px rgba(99,102,241,0.07), 0 16px 48px rgba(0,0,0,0.4)",
-        }}>
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Email */}
             <div>
-              <label htmlFor="email" style={{ display: "block", fontSize: 12, color: "rgba(180,190,240,0.6)", marginBottom: 6, letterSpacing: "0.05em" }}>
+              <label
+                htmlFor="email"
+                style={{ display: "block", fontSize: 12, color: "rgba(180,190,240,0.6)", marginBottom: 6, letterSpacing: "0.05em" }}
+              >
                 EMAIL
               </label>
               <div className="aura-input-wrap">
                 <div className="aura-input-inner">
+                  <span className="aura-input-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="5" width="18" height="14" rx="2" />
+                      <path d="m3 7 9 6 9-6" />
+                    </svg>
+                  </span>
                   <input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    autoComplete="email"
                     className="aura-input"
                     placeholder="you@example.com"
                   />
@@ -122,42 +144,66 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label htmlFor="password" style={{ display: "block", fontSize: 12, color: "rgba(180,190,240,0.6)", marginBottom: 6, letterSpacing: "0.05em" }}>
+              <label
+                htmlFor="password"
+                style={{ display: "block", fontSize: 12, color: "rgba(180,190,240,0.6)", marginBottom: 6, letterSpacing: "0.05em" }}
+              >
                 PASSWORD
               </label>
               <div className="aura-input-wrap">
                 <div className="aura-input-inner">
+                  <span className="aura-input-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="4" y="10" width="16" height="11" rx="2" />
+                      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                    </svg>
+                  </span>
                   <input
                     id="password"
                     type={showPw ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoComplete="current-password"
                     className="aura-input"
                     placeholder="Your password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPw((v) => !v)}
-                    style={{
-                      background: "none", border: "none", cursor: "pointer",
-                      padding: "0 14px", color: "rgba(150,165,220,0.45)",
-                      fontSize: 13, flexShrink: 0, transition: "color 0.2s",
-                    }}
+                    className="aura-eye-btn"
+                    aria-label={showPw ? "Hide password" : "Show password"}
                   >
-                    {showPw ? "Hide" : "Show"}
+                    {showPw ? (
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c7 0 10 8 10 8a18.5 18.5 0 0 1-2.16 3.19M6.61 6.61A18.5 18.5 0 0 0 2 12s3 8 10 8a9.1 9.1 0 0 0 5.39-1.61" />
+                        <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                        <path d="m2 2 20 20" />
+                      </svg>
+                    ) : (
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 12s3-8 10-8 10 8 10 8-3 8-10 8-10-8-10-8Z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
                   </button>
                 </div>
               </div>
             </div>
 
             {error && (
-              <p style={{
-                fontSize: 13, color: "#f87171",
-                background: "rgba(239,68,68,0.08)",
-                border: "1px solid rgba(239,68,68,0.2)",
-                borderRadius: 8, padding: "8px 12px", margin: 0,
-              }} role="alert">
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "#f87171",
+                  background: "rgba(239,68,68,0.08)",
+                  border: "1px solid rgba(239,68,68,0.2)",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  margin: 0,
+                }}
+                role="alert"
+              >
                 {error}
               </p>
             )}
@@ -165,38 +211,49 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="aura-btn aura-btn-primary"
+              className="aura-btn aura-btn-primary aura-btn--shine"
               style={{ width: "100%", marginTop: 4, padding: "13px 24px", borderRadius: 12, fontSize: "0.95rem" }}
             >
               {isLoading ? (
                 <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                  <span style={{
-                    width: 14, height: 14,
-                    border: "2px solid rgba(255,255,255,0.3)",
-                    borderTopColor: "#fff", borderRadius: "50%",
-                    display: "inline-block", animation: "loginSpin 0.7s linear infinite",
-                  }} />
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      border: "2px solid rgba(255,255,255,0.3)",
+                      borderTopColor: "#fff",
+                      borderRadius: "50%",
+                      display: "inline-block",
+                      animation: "loginSpin 0.7s linear infinite",
+                    }}
+                  />
                   Signing in…
                 </span>
-              ) : "Sign in"}
+              ) : (
+                "Sign in"
+              )}
             </button>
           </form>
         </div>
 
-        <p style={{ marginTop: 20, textAlign: "center", fontSize: 14, color: "rgba(150,165,220,0.55)" }}>
+        <p
+          className="auth-rise"
+          style={{ animationDelay: "300ms", marginTop: 20, textAlign: "center", fontSize: 14, color: "rgba(150,165,220,0.55)" }}
+        >
           New here?{" "}
-          <Link href="/signup" style={{ color: "#818cf8", textDecoration: "none", fontWeight: 500 }}
+          <Link
+            href="/signup"
+            style={{ color: "#a5b4fc", textDecoration: "none", fontWeight: 500 }}
             onMouseOver={(e) => (e.currentTarget.style.textDecoration = "underline")}
             onMouseOut={(e) => (e.currentTarget.style.textDecoration = "none")}
           >
-            Create an account
+            Create an account →
           </Link>
         </p>
       </div>
 
       <style>{`
-        @keyframes loginOrb { 0%,100%{opacity:0.6;transform:translate(-50%,-60%) scale(1)} 50%{opacity:1;transform:translate(-50%,-60%) scale(1.1)} }
-        @keyframes loginSpin { to{transform:rotate(360deg)} }
+        @keyframes loginSpin { to { transform: rotate(360deg); } }
         .aura-input:focus { outline: none; }
       `}</style>
     </main>
